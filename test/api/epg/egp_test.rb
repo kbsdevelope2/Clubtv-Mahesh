@@ -1,8 +1,9 @@
 require 'test/unit'
+require "date"
 
-class playlist_controller < Test::Unit::TestCase
+class PlaylistControllerTest < Test::Unit::TestCase
   def setup
-    @sample_data  = {
+    @data  = {
       playlist: {
        schedule: [
          {
@@ -33,8 +34,22 @@ class playlist_controller < Test::Unit::TestCase
     ]
   end
 
-  def test_epg_import
-    result = playlist_controller.fetch_schedule(@sample_data)
-    assert_equal result, @expected_result
+  def epg_test
+    res = get_data(@data)
+    assert_equal res, @expected_output
+  end
+
+  private
+  def get_data(data_to_be_filter)
+    datarange = ((DateTime.now-100.days).to_date..(DateTime.now + 5.days).to_date)
+    schedules = data_to_be_filter["playlist"]["schedule"]
+    assets = data_to_be_filter["playlist"]["sources"]
+    filtered_schedules = schedules.select{ | s | (datarange).include? (DateTime.strptime(s["starts_at"], '%Y-%m-%d T%H:%M:%S%z').to_date)}
+    filtered_schedules.each do |schedule|
+      schedule["url"] = schedule["source"]? assets.select{|a|  a["id"] == schedule["source"]}[0]["url"] :nil
+      schedule.delete("id")
+      schedule.delete("asset")
+      schedule.delete("source")
+    end
   end
 end
